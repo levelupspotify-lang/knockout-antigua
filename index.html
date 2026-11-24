@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Knockout & Hybrid Antigua — Cobros, Portal y Auto-Inscripción</title>
+  <style>
+    :root {
+      --bg: #0b0f17;
+      --panel: #121826;
+      --panel-2: #182133;
+      --line: #263248;
+      --text: #f3f6fb;
+      --muted: #9aa7bd;
+      --accent: #ef4444;
+      --accent-2: #f97316;
+      --ok: #10b981;
+      --warn: #f59e0b;
+      --info: #38bdf8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(11, 15, 23, 0.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .badge-ko {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      font-weight: 800;
+      padding: 7px 11px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      letter-spacing: 0.04em;
+    }
+    .brand h1 { font-size: 1rem; margin: 0; }
+    .brand small { color: var(--muted); display: block; font-size: 0.78rem; }
+    .top-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    button, .btn {
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 9px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+    button:hover, .btn:hover { border-color: #3d5073; background: #1f2b42; }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border: none;
+      color: #fff;
+    }
+    .btn-ok { background: rgba(16, 185, 129, 0.16); border-color: rgba(16, 185, 129, 0.45); color: #6ee7b7; }
+    .btn-warn { background: rgba(245, 158, 11, 0.16); border-color: rgba(245, 158, 11, 0.45); color: #fcd34d; }
+    nav.tabs {
+      display: flex;
+      gap: 6px;
+      padding: 10px 16px;
+      overflow-x: auto;
+      border-bottom: 1px solid var(--line);
+      background: #0e131e;
+    }
+    .tab-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--muted);
+      padding: 8px 13px;
+      border-radius: 9px;
+      white-space: nowrap;
+    }
+    .tab-btn.active {
+      background: var(--panel-2);
+      color: var(--text);
+      border-color: var(--line);
+    }
+    .pill-count {
+      background: var(--accent);
+      color: #fff;
+      border-radius: 999px;
+      padding: 1px 7px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    main { max-width: 1240px; margin: 0 auto; padding: 18px 16px 48px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+    .card h2, .card h3 { margin: 0 0 10px; font-size: 1rem; }
+    .kpi-label { font-size: 0.78rem; color: var(--muted); }
+    .kpi-val { font-size: 1.45rem; font-weight: 800; margin: 4px 0; }
+    .kpi-sub { font-size: 0.78rem; color: var(--muted); }
+    .pos { color: #34d399; }
+    .neg { color: #f87171; }
+    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; margin-top: 10px; }
+    input, select, textarea {
+      width: 100%;
+      background: #0d121c;
+      border: 1px solid var(--line);
+      color: var(--text);
+      padding: 9px 11px;
+      border-radius: 9px;
+      font-size: 0.88rem;
+    }
+    textarea { min-height: 76px; resize: vertical; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    th, td { padding: 9px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+    th { color: var(--muted); font-weight: 600; font-size: 0.78rem; }
+    .table-wrap { overflow-x: auto; }
+    .status {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 700;
+    }
+    .st-activo { background: rgba(16,185,129,.16); color: #6ee7b7; }
+    .st-pendiente { background: rgba(245,158,11,.16); color: #fcd34d; }
+    .st-vencido { background: rgba(239,68,68,.18); color: #fca5a5; }
+    .avatar-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .avatar-img {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--line);
+      background: #0d121c;
+    }
+    .avatar-sm {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid var(--line);
+      vertical-align: middle;
+    }
+    .switch-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--line);
+      gap: 12px;
+    }
+    .switch-row input[type="checkbox"] { width: auto; transform: scale(1.2); }
+    .toast {
+      position: fixed;
+      bottom: 18px;
+      right: 18px;
+      z-index: 60;
+      background: #172236;
+      border: 1px solid #38bdf8;
+      color: #f8fafc;
+      padding: 11px 15px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      display: none;
+      max-width: 360px;
+      box-shadow: 0 12px 28px rgba(0,0,0,.45);
+    }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.72);
+      z-index: 50;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 540px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 18px;
+    }
+    .hidden { display: none !important; }
+    video, canvas.snap-canvas {
+      width: 100%;
+      max-height: 240px;
+      border-radius: 10px;
+      background: #000;
+      margin-top: 8px;
+    }
+    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 10px; }
+    .metric-box { background: #0d121c; border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+    .metric-box small { color: var(--muted); display: block; font-size: 0.74rem; }
+    .metric-box strong { font-size: 1.05rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="badge-ko">KO / HYBRID</div>
+      <div>
+        <h1 id="appTitle">Knockout & Hybrid Antigua</h1>
+        <small id="syncBadge">Modo Local + Nube Listo · Cobros, Portal y Auto-Inscripción</small>
+      </div>
+    </div>
+    <div class="top-actions" id="adminTopActions">
+      <button class="btn-ok" onclick="copyStudentLink()">🔗 Copiar Link Alumno</button>
+      <button onclick="openStudentPreview()">📲 Vista Alumno</button>
+      <button onclick="exportCSV()">📊 Exportar CSV</button>
+      <button onclick="exportJSON()">💾 Respaldo JSON</button>
+      <button class="btn-warn" onclick="resetDemoData()">🧹 Limpiar / Demo</button>
+    </div>
+    <div class="top-actions hidden" id="studentTopActions">
+      <button onclick="exitStudentMode()">← Volver a Administración</button>
+    </div>
+  </header>
+
+  <nav class="tabs" id="adminTabs">
+    <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">📈 Dashboard & Flujo</button>
+    <button class="tab-btn" data-tab="inscripciones" onclick="switchTab('inscripciones')">
+      📥 Inscripciones <span class="pill-count" id="pendingCount">0</span>
+    </button>
+    <button class="tab-btn" data-tab="socios" onclick="switchTab('socios')">🏋️ Socios y Cobros</button>
+    <button class="tab-btn" data-tab="planes" onclick="switchTab('planes')">💳 Planes y Links</button>
+    <button class="tab-btn" data-tab="portal" onclick="switchTab('portal')">⚙️ Portal Cliente</button>
+    <button class="tab-btn" data-tab="progreso" onclick="switchTab('progreso')">📏 Medidas y Progreso</button>
+    <button class="tab-btn" data-tab="nube" onclick="switchTab('nube')">☁️ Nube Tiempo Real</button>
+  </nav>
+
+  <main>
+    <!-- SECCIÓN PÚBLICA DE AUTO-INSCRIPCIÓN PARA ALUMNOS -->
+    <section id="section-alumno-registro" class="hidden">
+      <div class="card">
+        <h2>Ficha de Inscripción — Knockout & Hybrid Club Antigua</h2>
+        <p style="color:var(--muted); margin:0 0 12px;">Completa tus datos y toma o sube tu foto de perfil. Tu solicitud llegará directamente al sistema del club.</p>
+        <form id="studentForm" onsubmit="submitStudentRegistration(event)">
+          <div class="grid-2">
+            <div>
+              <label>Nombre completo *</label>
+              <input id="regNombre" required placeholder="Ej. Sofía Morales" />
+              <label>Teléfono WhatsApp (Guatemala, 8 dígitos) *</label>
+              <input id="regTel" required placeholder="Ej. 55123456" />
+              <label>Correo electrónico</label>
+              <input id="regEmail" type="email" placeholder="sofia@correo.com" />
+              <label>Plan deseado *</label>
+              <select id="regPlan"></select>
+              <label>Método de pago preferido</label>
+              <select id="regMetodo">
+                <option>Transferencia / Depósito</option>
+                <option>Tarjeta (Link de Pago)</option>
+                <option>Efectivo en Recepción</option>
+              </select>
+            </div>
+            <div>
+              <label>Contacto de emergencia *</label>
+              <input id="regEmergencia" required placeholder="Nombre y teléfono" />
+              <label>Lesiones o condiciones médicas</label>
+              <input id="regSalud" placeholder="Ej. Molestia leve rodilla derecha / Ninguna" />
+              <label>Foto de perfil</label>
+              <div class="avatar-box">
+                <img id="regAvatarPreview" class="avatar-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><rect width='80' height='80' fill='%23182133'/><text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' fill='%239aa7bd' font-size='26'>KO</text></svg>" alt="Foto" />
+                <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                  <button type="button" onclick="startCamera('reg')">📷 Tomar Foto</button>
+                  <label class="btn" style="margin:0;">📁 Subir Foto <input type="file" accept="image/*" capture="user" style="display:none;" onchange="handleFilePhoto(event, 'reg')" /></label>
+                </div>
+              </div>
+              <div id="camBox-reg" class="hidden">
+                <video id="video-reg" autoplay playsinline></video>
+                <div style="display:flex; gap:8px; margin-top:6px;">
+                  <button type="button" class="btn-primary" onclick="capturePhoto('reg')">Capturar Foto</button>
+                  <button type="button" onclick="stopCamera('reg')">Cerrar Cámara</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <label>Objetivos o comentarios</label>
+          <textarea id="regNotas" placeholder="Preparación HYROX, boxeo técnico, triatlón, fuerza..."></textarea>
+          <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="submit" class="btn-primary">🚀 Enviar Solicitud de Inscripción</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- DASHBOARD -->
+    <section id="tab-dashboard">
+      <div class="grid-4">
+        <div class="card">
+          <div class="kpi-label">MRR Membresías Activas</div>
+          <div class="kpi-val pos" id="kpiMrr">Q0.00</div>
+          <div class="kpi-sub" id="kpiActiveCount">0 socios activos</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">Ingresos Locales Comerciales</div>
+          <div class="kpi-val pos">Q13,000.00</div>
+          <div class="kpi-sub">Clínica Fisio Q10,000 + Cafetería Q3,000</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">Egresos Fijos Mensuales</div>
+          <div class="kpi-val neg">Q37,000.00</div>
+          <div class="kpi-sub">Renta Q15,000 (Q8k+Q7k) · Nómina Q19.5k · Serv Q2.5k</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">Balance Neto Mensual</div>
+          <div class="kpi-val" id="kpiNet">Q0.00</div>
+          <div class="kpi-sub" id="kpiBreakEven">Punto de equilibrio: -- socios</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Simulador Rápido de Membresías</h3>
+        <div class="grid-2">
+          <div>
+            <label>Socios proyectados: <strong id="simMembersLbl">52</strong></label>
+            <input type="range" id="simMembers" min="10" max="300" value="52" oninput="renderDashboard()" />
+          </div>
+          <div>
+            <label>Cuota promedio mensual (Q): <strong id="simFeeLbl">Q550</strong></label>
+            <input type="range" id="simFee" min="250" max="1500" step="25" value="550" oninput="renderDashboard()" />
+          </div>
+        </div>
+        <p id="simResult" style="margin:10px 0 0; color:var(--muted);"></p>
+      </div>
+
+      <div class="card">
+        <h3>Últimas Facturas / Cobros Registrados</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Fecha</th><th>Socio</th><th>Plan</th><th>Monto</th><th>Método</th><th>Estado</th></tr>
+            </thead>
+            <tbody id="recentInvoicesBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- INSCRIPCIONES PENDIENTES -->
+    <section id="tab-inscripciones" class="hidden">
+      <div class="card">
+        <h2>Solicitudes de Inscripción en Línea</h2>
+        <p style="color:var(--muted); margin:0 0 12px;">Comparte el enlace de registro con tus alumnos. Cuando envíen el formulario, aparecerán aquí para aprobar con 1 clic y registrar su pago inicial.</p>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+          <button class="btn-ok" onclick="copyStudentLink()">🔗 Copiar Link de Inscripción</button>
+          <button onclick="openStudentPreview()">📲 Abrir Formulario como Alumno</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Foto / Alumno</th>
+                <th>WhatsApp</th>
+                <th>Plan</th>
+                <th>Pago / Emergencia</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="registrationsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- SOCIOS Y COBROS -->
+    <section id="tab-socios" class="hidden">
+      <div class="card">
+        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:10px; align-items:center;">
+          <h2 style="margin:0;">Socios y Suscripciones</h2>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <input id="searchMember" placeholder="Buscar socio o plan..." style="width:210px;" oninput="renderMembers()" />
+            <button class="btn-primary" onclick="openMemberModal()">+ Nuevo Socio</button>
+          </div>
+        </div>
+        <div class="table-wrap" style="margin-top:12px;">
+          <table>
+            <thead>
+              <tr><th>Socio</th><th>Plan</th><th>Cuota</th><th>Próximo Cobro</th><th>Estado</th><th>Acciones</th></tr>
+            </thead>
+            <tbody id="membersBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- PLANES Y LINKS -->
+    <section id="tab-planes" class="hidden">
+      <div class="card">
+        <h2>Planes y Enlaces de Pago (Payment Links)</h2>
+        <div class="grid-2" style="margin-bottom:14px;">
+          <div>
+            <label>Nombre del Plan</label>
+            <input id="newPlanName" placeholder="Ej. Plan KO Mensual" />
+          </div>
+          <div>
+            <label>Precio Mensual (Q)</label>
+            <input id="newPlanPrice" type="number" placeholder="550" />
+          </div>
+        </div>
+        <button class="btn-primary" onclick="addPlan()">+ Agregar Plan y Link</button>
+        <div class="grid-2" id="plansGrid" style="margin-top:16px;"></div>
+      </div>
+    </section>
+
+    <!-- PORTAL CLIENTE -->
+    <section id="tab-portal" class="hidden">
+      <div class="grid-2">
+        <div class="card">
+          <h2>Configuración del Portal de Clientes</h2>
+          <div class="switch-row"><span>Permitir actualizar método de pago</span><input type="checkbox" id="optCard" checked onchange="savePortalOpts()" /></div>
+          <div class="switch-row"><span>Permitir cambio de plan</span><input type="checkbox" id="optPlan" checked onchange="savePortalOpts()" /></div>
+          <div class="switch-row"><span>Permitir pausar suscripción</span><input type="checkbox" id="optPause" checked onchange="savePortalOpts()" /></div>
+          <div class="switch-row"><span>Permitir cancelar al final del ciclo</span><input type="checkbox" id="optCancel" checked onchange="savePortalOpts()" /></div>
+          <div class="switch-row"><span>Permitir descargar recibos</span><input type="checkbox" id="optReceipts" checked onchange="savePortalOpts()" /></div>
+        </div>
+        <div class="card">
+          <h2>Vista Previa del Socio</h2>
+          <label>Seleccionar socio</label>
+          <select id="portalMemberSelect" onchange="renderPortalPreview()"></select>
+          <div id="portalPreviewBox" style="margin-top:12px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MEDIDAS Y PROGRESO -->
+    <section id="tab-progreso" class="hidden">
+      <div class="card">
+        <h2>Medidas Corporales y Progreso del Alumno</h2>
+        <div class="grid-2">
+          <div>
+            <label>Alumno</label>
+            <select id="progMemberSelect" onchange="renderProgressSection()"></select>
+            <div class="grid-2">
+              <div><label>Peso (lb)</label><input id="progWeight" type="number" step="0.1" placeholder="160.0" /></div>
+              <div><label>Estatura (m)</label><input id="progHeight" type="number" step="0.01" placeholder="1.65" /></div>
+              <div><label>Cintura (cm)</label><input id="progWaist" type="number" step="0.5" placeholder="80" /></div>
+              <div><label>Pecho (cm)</label><input id="progChest" type="number" step="0.5" placeholder="98" /></div>
+              <div><label>Grasa corporal (%)</label><input id="progFat" type="number" step="0.1" placeholder="16.5" /></div>
+              <div><label>FC en reposo (bpm)</label><input id="progHr" type="number" placeholder="58" /></div>
+            </div>
+            <label>Marcas / Notas de entrenamiento</label>
+            <input id="progNotes" placeholder="Ej. Sled push / carrera 5k / evaluación mensual" />
+            <button class="btn-primary" style="margin-top:12px;" onclick="saveProgressEntry()">+ Guardar Registro de Progreso</button>
+          </div>
+          <div>
+            <h3 style="margin-top:10px;">Resumen Actual del Alumno</h3>
+            <div id="progSummaryCards" class="metric-grid"></div>
+          </div>
+        </div>
+        <div class="table-wrap" style="margin-top:16px;">
+          <table>
+            <thead>
+              <tr><th>Fecha</th><th>Peso (lb)</th><th>Cintura</th><th>Pecho</th><th>Grasa %</th><th>FC Reposo</th><th>Notas</th></tr>
+            </thead>
+            <tbody id="progressHistoryBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- NUBE TIEMPO REAL -->
+    <section id="tab-nube" class="hidden">
+      <div class="card">
+        <h2>Sincronización en la Nube en Tiempo Real (Firebase)</h2>
+        <p style="color:var(--muted);">Conecta tu Firebase Realtime Database para que las inscripciones enviadas desde el teléfono de los alumnos lleguen solas en tiempo real. Si no configuras nada, el sistema sigue guardando en el navegador.</p>
+        <div class="grid-2">
+          <div><label>apiKey</label><input id="fbApiKey" placeholder="AIza..." /></div>
+          <div><label>databaseURL</label><input id="fbDbUrl" placeholder="https://tu-proyecto-default-rtdb.firebaseio.com" /></div>
+          <div><label>projectId</label><input id="fbProjectId" placeholder="tu-proyecto" /></div>
+          <div><label>Ruta / Sala del Club</label><input id="fbRoom" value="knockout_antigua_live" /></div>
+        </div>
+        <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn-primary" onclick="connectFirebase()">☁️ Guardar y Conectar Nube</button>
+          <button onclick="importJSONTrigger()">📂 Importar Respaldo JSON</button>
+          <input type="file" id="jsonFileInput" accept=".json" style="display:none;" onchange="importJSONFile(event)" />
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL APROBAR INSCRIPCIÓN Y COBRO -->
+  <div class="modal-backdrop" id="approveModal">
+    <div class="modal">
+      <h3>Aprobar Inscripción y Registrar Pago Inicial</h3>
+      <form id="approveForm" onsubmit="confirmApproval(event)">
+        <input type="hidden" id="appRegId" />
+        <label>Alumno</label>
+        <input id="appName" readonly />
+        <label>Plan asignado</label>
+        <select id="appPlan" onchange="syncApproveAmount()"></select>
+        <label>Monto pagado hoy (Q)</label>
+        <input id="appAmount" type="number" step="0.01" required />
+        <label>Método de pago</label>
+        <select id="appMethod">
+          <option>Transferencia / Depósito</option>
+          <option>Efectivo</option>
+          <option>Tarjeta</option>
+        </select>
+        <label>Número de boleta / comprobante</label>
+        <input id="appRef" placeholder="Ej. Boleta #4821" />
+        <div style="margin-top:14px; display:flex; justify-content:flex-end; gap:8px;">
+          <button type="button" onclick="closeModal('approveModal')">Cancelar</button>
+          <button type="submit" class="btn-ok">✅ Confirmar Alta y Pago</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL NUEVO / EDITAR SOCIO -->
+  <div class="modal-backdrop" id="memberModal">
+    <div class="modal">
+      <h3 id="memberModalTitle">Nuevo Socio</h3>
+      <form id="memberForm" onsubmit="saveMember(event)">
+        <input type="hidden" id="memId" />
+        <label>Nombre completo</label>
+        <input id="memName" required />
+        <label>Teléfono WhatsApp (8 dígitos GT)</label>
+        <input id="memPhone" required placeholder="55001122" />
+        <label>Plan</label>
+        <select id="memPlan"></select>
+        <label>Estado</label>
+        <select id="memStatus">
+          <option value="Activo">Activo</option>
+          <option value="Pendiente">Pendiente</option>
+          <option value="Vencido">Vencido</option>
+        </select>
+        <label>Foto de perfil</label>
+        <div class="avatar-box">
+          <img id="memAvatarPreview" class="avatar-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><rect width='80' height='80' fill='%23182133'/><text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' fill='%239aa7bd' font-size='26'>KO</text></svg>" />
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button type="button" onclick="startCamera('mem')">📷 Cámara</button>
+            <label class="btn" style="margin:0;">📁 Subir <input type="file" accept="image/*" style="display:none;" onchange="handleFilePhoto(event, 'mem')" /></label>
+          </div>
+        </div>
+        <div id="camBox-mem" class="hidden">
+          <video id="video-mem" autoplay playsinline></video>
+          <div style="display:flex; gap:8px; margin-top:6px;">
+            <button type="button" class="btn-primary" onclick="capturePhoto('mem')">Capturar</button>
+            <button type="button" onclick="stopCamera('mem')">Cerrar</button>
+          </div>
+        </div>
+        <div style="margin-top:14px; display:flex; justify-content:flex-end; gap:8px;">
+          <button type="button" onclick="closeModal('memberModal')">Cancelar</button>
+          <button type="submit" class="btn-primary">Guardar Socio</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL WHATSAPP FALLBACK -->
+  <div class="modal-backdrop" id="waModal">
+    <div class="modal">
+      <h3>Mensaje de WhatsApp Listo</h3>
+      <p style="color:var(--muted); margin:0 0 8px;">Si tu navegador bloqueó la ventana automática, abre el enlace o copia el texto:</p>
+      <textarea id="waTextBox" readonly></textarea>
+      <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+        <button onclick="copyWaText()">📋 Copiar Mensaje</button>
+        <a id="waDirectLink" class="btn btn-ok" target="_blank" rel="noopener">💬 Abrir WhatsApp</a>
+        <button onclick="closeModal('waModal')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const STORAGE_KEY = 'KO_HYBRID_ANTIGUA_STATE_V1';
+    const FIXED_LOCAL_INCOME = 13000; // Clínica Fisio Q10,000 + Cafetería Q3,000
+    const FIXED_EXPENSES = 37000; // Renta Q15,000 (Q8k + Q7k) + Nómina Q19,500 + Servicios Q2,500
+    const DEFAULT_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><rect width='80' height='80' fill='%23182133'/><text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' fill='%239aa7bd' font-size='26'>KO</text></svg>";
+
+    const defaultState = {
+      plans: [
+        { id: 'p1', name: 'Knockout Boxing Mensual', price: 450 },
+        { id: 'p2', name: 'HYROX & Hybrid Mensual', price: 550 },
+        { id: 'p3', name: 'Plan KO / Pase Total', price: 650 }
+      ],
+      members: [
+        { id: 'm1', name: 'Carlos Méndez', phone: '55112233', planId: 'p2', status: 'Activo', nextBilling: '2026-12-20', photo: DEFAULT_AVATAR },
+        { id: 'm2', name: 'Valeria Ruiz', phone: '55443322', planId: 'p3', status: 'Activo', nextBilling: '2026-12-15', photo: DEFAULT_AVATAR }
+      ],
+      registrations: [
+        {
+          id: 'r1',
+          name: 'Diego Castellanos',
+          phone: '55998877',
+          email: 'diego@ejemplo.com',
+          planId: 'p2',
+          method: 'Transferencia / Depósito',
+          emergency: 'Marta Castellanos · 55001199',
+          health: 'Ninguna',
+          notes: 'Preparación HYROX y resistencia',
+          photo: DEFAULT_AVATAR,
+          status: 'Pendiente',
+          createdAt: '2026-11-24'
+        }
+      ],
+      invoices: [
+        { id: 'inv1', date: '2026-11-20', memberName: 'Carlos Méndez', planName: 'HYROX & Hybrid Mensual', amount: 550, method: 'Tarjeta', status: 'Pagada' },
+        { id: 'inv2', date: '2026-11-15', memberName: 'Valeria Ruiz', planName: 'Plan KO / Pase Total', amount: 650, method: 'Transferencia', status: 'Pagada' }
+      ],
+      progress: {
+        m1: [
+          { date: '2026-10-20', weight: 164.0, height: 1.65, waist: 82, chest: 97, fat: 17.5, hr: 62, notes: 'Evaluación inicial' },
+          { date: '2026-11-20', weight: 161.2, height: 1.65, waist: 80, chest: 98.5, fat: 16.4, hr: 58, notes: 'Mejor ritmo en carrera y sleds' }
+        ],
+        m2: [
+          { date: '2026-11-15', weight: 134.5, height: 1.62, waist: 70, chest: 88, fat: 21.0, hr: 64, notes: 'Inicio Plan KO' }
+        ]
+      },
+      portalOpts: { card: true, plan: true, pause: true, cancel: true, receipts: true },
+      firebase: { apiKey: '', dbUrl: '', projectId: '', room: 'knockout_antigua_live' }
+    };
+
+    let state = loadState();
+    let activeStreams = {};
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return structuredClone(defaultState);
+        const parsed = JSON.parse(raw);
+        return { ...structuredClone(defaultState), ...parsed, portalOpts: { ...defaultState.portalOpts, ...(parsed.portalOpts || {}) }, firebase: { ...defaultState.firebase, ...(parsed.firebase || {}) } };
+      } catch (e) {
+        return structuredClone(defaultState);
+      }
+    }
+
+    function saveState(pushCloud = true) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+      if (pushCloud && state.firebase && state.firebase.dbUrl) {
+        pushToFirebase();
+      }
+      renderAll();
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.display = 'block';
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => { t.style.display = 'none'; }, 3200);
+    }
+
+    function fmtQ(n) {
+      return 'Q' + Number(n || 0).toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function getPlan(planId) {
+      return state.plans.find(p => p.id === planId) || state.plans[0] || { id: 'p1', name: 'Membresía', price: 500 };
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabName));
+      document.querySelectorAll('main > section').forEach(s => {
+        if (s.id === 'section-alumno-registro') return;
+        s.classList.toggle('hidden', s.id !== 'tab-' + tabName);
+      });
+    }
+
+    function getStudentLink() {
+      const base = window.location.href.split('#')[0].split('?')[0];
+      return `${base}?registro=1#inscripcion`;
+    }
+
+    function copyStudentLink() {
+      const link = getStudentLink();
+      navigator.clipboard?.writeText(link).catch(() => {});
+      showToast('Enlace de inscripción copiado: ' + link);
+    }
+
+    function openStudentPreview() {
+      document.getElementById('section-alumno-registro').classList.remove('hidden');
+      document.getElementById('adminTabs').classList.add('hidden');
+      document.getElementById('adminTopActions').classList.add('hidden');
+      document.getElementById('studentTopActions').classList.remove('hidden');
+      document.querySelectorAll('main > section').forEach(s => {
+        if (s.id !== 'section-alumno-registro') s.classList.add('hidden');
+      });
+      populatePlanSelects();
+    }
+
+    function exitStudentMode() {
+      stopCamera('reg');
+      document.getElementById('section-alumno-registro').classList.add('hidden');
+      document.getElementById('adminTabs').classList.remove('hidden');
+      document.getElementById('adminTopActions').classList.remove('hidden');
+      document.getElementById('studentTopActions').classList.add('hidden');
+      switchTab('dashboard');
+    }
+
+    function normalizeGTPhone(raw) {
+      const digits = String(raw || '').replace(/\D/g, '');
+      if (!digits) return '';
+      if (digits.startsWith('502') && digits.length >= 11) return digits;
+      return '502' + digits;
+    }
+
+    function sendWhatsApp(phoneRaw, text) {
+      const phone = normalizeGTPhone(phoneRaw);
+      const url = phone
+        ? `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
+        : `https://wa.me/?text=${encodeURIComponent(text)}`;
+      document.getElementById('waTextBox').value = text;
+      document.getElementById('waDirectLink').href = url;
+      const win = window.open(url, '_blank', 'noopener,noreferrer');
+      if (!win) {
+        document.getElementById('waModal').classList.add('open');
+      }
+    }
+
+    function copyWaText() {
+      const txt = document.getElementById('waTextBox').value;
+      navigator.clipboard?.writeText(txt).catch(() => {});
+      showToast('Mensaje copiado al portapapeles');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('open');
+    }
+
+    // CÁMARA Y FOTO
+    async function startCamera(scope) {
+      try {
+        const box = document.getElementById('camBox-' + scope);
+        const video = document.getElementById('video-' + scope);
+        box.classList.remove('hidden');
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+        activeStreams[scope] = stream;
+        video.srcObject = stream;
+      } catch (err) {
+        showToast('No se pudo abrir la cámara en vivo; puedes usar "Subir Foto".');
+      }
+    }
+
+    function stopCamera(scope) {
+      const box = document.getElementById('camBox-' + scope);
+      if (box) box.classList.add('hidden');
+      if (activeStreams[scope]) {
+        activeStreams[scope].getTracks().forEach(t => t.stop());
+        delete activeStreams[scope];
+      }
+    }
+
+    function capturePhoto(scope) {
+      const video = document.getElementById('video-' + scope);
+      if (!video || !video.videoWidth) return;
+      const canvas = document.createElement('canvas');
+      canvas.width = 240;
+      canvas.height = 240;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+      applyPhotoData(scope, dataUrl);
+      stopCamera(scope);
+      showToast('Foto de perfil capturada');
+    }
+
+    function handleFilePhoto(event, scope) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          canvas.width = 240;
+          canvas.height = 240;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          applyPhotoData(scope, canvas.toDataURL('image/jpeg', 0.78));
+          showToast('Foto de perfil actualizada');
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function applyPhotoData(scope, dataUrl) {
+      if (scope === 'reg') {
+        document.getElementById('regAvatarPreview').src = dataUrl;
+        window.__regPhoto = dataUrl;
+      } else if (scope === 'mem') {
+        document.getElementById('memAvatarPreview').src = dataUrl;
+        window.__memPhoto = dataUrl;
+      }
+    }
+
+    // REGISTRO DE ALUMNOS
+    function submitStudentRegistration(e) {
+      e.preventDefault();
+      const reg = {
+        id: 'r_' + Date.now(),
+        name: document.getElementById('regNombre').value.trim(),
+        phone: document.getElementById('regTel').value.trim(),
+        email: document.getElementById('regEmail').value.trim(),
+        planId: document.getElementById('regPlan').value,
+        method: document.getElementById('regMetodo').value,
+        emergency: document.getElementById('regEmergencia').value.trim(),
+        health: document.getElementById('regSalud').value.trim() || 'Ninguna',
+        notes: document.getElementById('regNotas').value.trim(),
+        photo: window.__regPhoto || DEFAULT_AVATAR,
+        status: 'Pendiente',
+        createdAt: new Date().toISOString().slice(0, 10)
+      };
+      state.registrations.unshift(reg);
+      saveState(true);
+      e.target.reset();
+      window.__regPhoto = DEFAULT_AVATAR;
+      document.getElementById('regAvatarPreview').src = DEFAULT_AVATAR;
+      showToast('¡Solicitud enviada! Ya aparece en Inscripciones.');
+    }
+
+    function openApproveModal(regId) {
+      const reg = state.registrations.find(r => r.id === regId);
+      if (!reg) return;
+      document.getElementById('appRegId').value = reg.id;
+      document.getElementById('appName').value = reg.name;
+      const sel = document.getElementById('appPlan');
+      sel.innerHTML = state.plans.map(p => `<option value="${p.id}" ${p.id === reg.planId ? 'selected' : ''}>${p.name} (${fmtQ(p.price)})</option>`).join('');
+      syncApproveAmount();
+      document.getElementById('appRef').value = '';
+      document.getElementById('approveModal').classList.add('open');
+    }
+
+    function syncApproveAmount() {
+      const plan = getPlan(document.getElementById('appPlan').value);
+      document.getElementById('appAmount').value = plan.price;
+    }
+
+    function confirmApproval(e) {
+      e.preventDefault();
+      const regId = document.getElementById('appRegId').value;
+      const reg = state.registrations.find(r => r.id === regId);
+      if (!reg) return;
+      const plan = getPlan(document.getElementById('appPlan').value);
+      const amount = Number(document.getElementById('appAmount').value || plan.price);
+      const method = document.getElementById('appMethod').value;
+      const ref = document.getElementById('appRef').value.trim();
+      const nextDate = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+
+      const newMember = {
+        id: 'm_' + Date.now(),
+        name: reg.name,
+        phone: reg.phone,
+        planId: plan.id,
+        status: 'Activo',
+        nextBilling: nextDate,
+        photo: reg.photo || DEFAULT_AVATAR
+      };
+      state.members.unshift(newMember);
+      state.invoices.unshift({
+        id: 'inv_' + Date.now(),
+        date: new Date().toISOString().slice(0, 10),
+        memberName: reg.name,
+        planName: plan.name,
+        amount,
+        method: ref ? `${method} (${ref})` : method,
+        status: 'Pagada'
+      });
+      reg.status = 'Aprobada';
+      saveState(true);
+      closeModal('approveModal');
+      showToast(`Socio aprobado y cobro de ${fmtQ(amount)} registrado.`);
+      sendWhatsApp(reg.phone, `¡Bienvenido/a a Knockout & Hybrid Antigua, ${reg.name}! Tu inscripción al plan ${plan.name} está activa y tu pago de ${fmtQ(amount)} fue registrado. Próximo cobro: ${nextDate}.`);
+    }
+
+    function rejectRegistration(regId) {
+      const reg = state.registrations.find(r => r.id === regId);
+      if (reg) reg.status = 'Archivada';
+      saveState(true);
+      showToast('Solicitud archivada');
+    }
+
+    // SOCIOS Y COBRO
+    function openMemberModal(memberId = null) {
+      populatePlanSelects();
+      stopCamera('mem');
+      if (memberId) {
+        const m = state.members.find(x => x.id === memberId);
+        if (!m) return;
+        document.getElementById('memberModalTitle').textContent = 'Editar Socio';
+        document.getElementById('memId').value = m.id;
+        document.getElementById('memName').value = m.name;
+        document.getElementById('memPhone').value = m.phone;
+        document.getElementById('memPlan').value = m.planId;
+        document.getElementById('memStatus').value = m.status;
+        document.getElementById('memAvatarPreview').src = m.photo || DEFAULT_AVATAR;
+        window.__memPhoto = m.photo || DEFAULT_AVATAR;
+      } else {
+        document.getElementById('memberModalTitle').textContent = 'Nuevo Socio';
+        document.getElementById('memId').value = '';
+        document.getElementById('memName').value = '';
+        document.getElementById('memPhone').value = '';
+        document.getElementById('memStatus').value = 'Activo';
+        document.getElementById('memAvatarPreview').src = DEFAULT_AVATAR;
+        window.__memPhoto = DEFAULT_AVATAR;
+      }
+      document.getElementById('memberModal').classList.add('open');
+    }
+
+    function saveMember(e) {
+      e.preventDefault();
+      const id = document.getElementById('memId').value;
+      const payload = {
+        name: document.getElementById('memName').value.trim(),
+        phone: document.getElementById('memPhone').value.trim(),
+        planId: document.getElementById('memPlan').value,
+        status: document.getElementById('memStatus').value,
+        photo: window.__memPhoto || DEFAULT_AVATAR
+      };
+      if (id) {
+        const idx = state.members.findIndex(m => m.id === id);
+        if (idx > -1) state.members[idx] = { ...state.members[idx], ...payload };
+      } else {
+        state.members.unshift({
+          id: 'm_' + Date.now(),
+          ...payload,
+          nextBilling: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
+        });
+      }
+      saveState(true);
+      closeModal('memberModal');
+      showToast('Socio guardado');
+    }
+
+    function renewMember(memberId) {
+      const m = state.members.find(x => x.id === memberId);
+      if (!m) return;
+      const plan = getPlan(m.planId);
+      const nextDate = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+      m.status = 'Activo';
+      m.nextBilling = nextDate;
+      state.invoices.unshift({
+        id: 'inv_' + Date.now(),
+        date: new Date().toISOString().slice(0, 10),
+        memberName: m.name,
+        planName: plan.name,
+        amount: plan.price,
+        method: 'Renovación 1-Clic',
+        status: 'Pagada'
+      });
+      saveState(true);
+      showToast(`Renovación de ${m.name} registrada (${fmtQ(plan.price)})`);
+      sendWhatsApp(m.phone, `Hola ${m.name}, tu membresía ${plan.name} en Knockout & Hybrid Antigua ha sido renovada por ${fmtQ(plan.price)}. Próximo cobro: ${nextDate}.`);
+    }
+
+    function deleteMember(memberId) {
+      state.members = state.members.filter(m => m.id !== memberId);
+      saveState(true);
+      showToast('Socio eliminado');
+    }
+
+    // PLANES
+    function addPlan() {
+      const name = document.getElementById('newPlanName').value.trim();
+      const price = Number(document.getElementById('newPlanPrice').value);
+      if (!name || !price) return showToast('Ingresa nombre y precio del plan');
+      state.plans.push({ id: 'p_' + Date.now(), name, price });
+      document.getElementById('newPlanName').value = '';
+      document.getElementById('newPlanPrice').value = '';
+      saveState(true);
+      showToast('Plan agregado');
+    }
+
+    function copyPaymentLink(planId) {
+      const plan = getPlan(planId);
+      const link = `${window.location.href.split('#')[0]}?pay=${encodeURIComponent(plan.id)}&monto=${plan.price}`;
+      navigator.clipboard?.writeText(link).catch(() => {});
+      showToast(`Link de pago (${plan.name}): ${link}`);
+    }
+
+    // PORTAL CLIENTE
+    function savePortalOpts() {
+      state.portalOpts = {
+        card: document.getElementById('optCard').checked,
+        plan: document.getElementById('optPlan').checked,
+        pause: document.getElementById('optPause').checked,
+        cancel: document.getElementById('optCancel').checked,
+        receipts: document.getElementById('optReceipts').checked
+      };
+      saveState(true);
+    }
+
+    function renderPortalPreview() {
+      const sel = document.getElementById('portalMemberSelect');
+      if (!sel || !state.members.length) return;
+      const m = state.members.find(x => x.id === sel.value) || state.members[0];
+      const plan = getPlan(m.planId);
+      const o = state.portalOpts;
+      document.getElementById('portalPreviewBox').innerHTML = `
+        <div class="card" style="background:#0d121c; margin:0;">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+            <div><strong>${m.name}</strong><div style="color:var(--muted); font-size:0.8rem;">${plan.name} · ${fmtQ(plan.price)}/mes</div></div>
+            <span class="status st-activo">${m.status}</span>
+          </div>
+          <p style="font-size:0.82rem; color:var(--muted);">Próximo cobro automático: <strong>${m.nextBilling}</strong></p>
+          <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            ${o.card ? '<button onclick="showToast('Tarjeta actualizada en el portal')">💳 Actualizar Tarjeta</button>' : ''}
+            ${o.plan ? '<button onclick="showToast('Cambio de plan solicitado')">🔄 Cambiar Plan</button>' : ''}
+            ${o.pause ? '<button onclick="showToast('Membresía pausada')">⏸️ Pausar</button>' : ''}
+            ${o.cancel ? '<button onclick="showToast('Cancelación programada al fin de ciclo')">✖ Cancelar fin ciclo</button>' : ''}
+            ${o.receipts ? '<button onclick="showToast('Recibo descargado')">🧾 Descargar Recibo</button>' : ''}
+          </div>
+        </div>`;
+    }
+
+    // MEDIDAS Y PROGRESO
+    function saveProgressEntry() {
+      const memberId = document.getElementById('progMemberSelect').value;
+      if (!memberId) return;
+      const entry = {
+        date: new Date().toISOString().slice(0, 10),
+        weight: document.getElementById('progWeight').value || '-',
+        height: document.getElementById('progHeight').value || '-',
+        waist: document.getElementById('progWaist').value || '-',
+        chest: document.getElementById('progChest').value || '-',
+        fat: document.getElementById('progFat').value || '-',
+        hr: document.getElementById('progHr').value || '-',
+        notes: document.getElementById('progNotes').value.trim() || 'Registro de control'
+      };
+      if (!state.progress[memberId]) state.progress[memberId] = [];
+      state.progress[memberId].unshift(entry);
+      document.getElementById('progNotes').value = '';
+      saveState(true);
+      showToast('Progreso guardado');
+    }
+
+    function renderProgressSection() {
+      const sel = document.getElementById('progMemberSelect');
+      if (!sel || !state.members.length) return;
+      const memberId = sel.value || state.members[0].id;
+      const list = state.progress[memberId] || [];
+      const latest = list[0] || {};
+      document.getElementById('progSummaryCards').innerHTML = `
+        <div class="metric-box"><small>Peso (lb)</small><strong>${latest.weight ?? '-'}</strong></div>
+        <div class="metric-box"><small>Estatura (m)</small><strong>${latest.height ?? '-'}</strong></div>
+        <div class="metric-box"><small>Cintura (cm)</small><strong>${latest.waist ?? '-'}</strong></div>
+        <div class="metric-box"><small>Grasa (%)</small><strong>${latest.fat ?? '-'}</strong></div>
+        <div class="metric-box"><small>FC Reposo</small><strong>${latest.hr ?? '-'}</strong></div>
+      `;
+      document.getElementById('progressHistoryBody').innerHTML = list.length
+        ? list.map(r => `<tr><td>${r.date}</td><td>${r.weight}</td><td>${r.waist}</td><td>${r.chest}</td><td>${r.fat}</td><td>${r.hr}</td><td>${r.notes}</td></tr>`).join('')
+        : '<tr><td colspan="7" style="color:var(--muted);">Sin mediciones registradas aún.</td></tr>';
+    }
+
+    // NUBE FIREBASE REST
+    function connectFirebase() {
+      state.firebase = {
+        apiKey: document.getElementById('fbApiKey').value.trim(),
+        dbUrl: document.getElementById('fbDbUrl').value.trim().replace(/\/+$/, ''),
+        projectId: document.getElementById('fbProjectId').value.trim(),
+        room: document.getElementById('fbRoom').value.trim() || 'knockout_antigua_live'
+      };
+      saveState(true);
+      startCloudPolling();
+      showToast('Configuración de nube guardada');
+    }
+
+    function pushToFirebase() {
+      const { dbUrl, room, apiKey } = state.firebase || {};
+      if (!dbUrl) return;
+      const q = apiKey ? `?auth=${encodeURIComponent(apiKey)}` : '';
+      fetch(`${dbUrl}/${encodeURIComponent(room)}.json${q}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...state, updatedAt: Date.now() })
+      }).catch(() => {});
+    }
+
+    function pullFromFirebase() {
+      const { dbUrl, room, apiKey } = state.firebase || {};
+      if (!dbUrl) return;
+      const q = apiKey ? `?auth=${encodeURIComponent(apiKey)}` : '';
+      fetch(`${dbUrl}/${encodeURIComponent(room)}.json${q}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.updatedAt && data.updatedAt > (state.updatedAt || 0)) {
+            const { updatedAt, ...clean } = data;
+            state = { ...state, ...clean, updatedAt };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            renderAll();
+          }
+        })
+        .catch(() => {});
+    }
+
+    let pollTimer = null;
+    function startCloudPolling() {
+      clearInterval(pollTimer);
+      if (state.firebase && state.firebase.dbUrl) {
+        document.getElementById('syncBadge').textContent = `Nube Activa · Sala: ${state.firebase.room}`;
+        pullFromFirebase();
+        pollTimer = setInterval(pullFromFirebase, 5000);
+      } else {
+        document.getElementById('syncBadge').textContent = 'Modo Local + Nube Listo · Cobros, Portal y Auto-Inscripción';
+      }
+    }
+
+    // EXPORTAR / IMPORTAR / RESET
+    function exportCSV() {
+      const rows = [['Fecha', 'Socio', 'Plan', 'Monto', 'Metodo', 'Estado']];
+      state.invoices.forEach(i => rows.push([i.date, i.memberName, i.planName, i.amount, i.method, i.status]));
+      const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('
+');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'Knockout_Hybrid_Antigua_Cobros.csv';
+      a.click();
+      showToast('CSV exportado');
+    }
+
+    function exportJSON() {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'Knockout_Hybrid_Antigua_Respaldo.json';
+      a.click();
+      showToast('Respaldo JSON descargado');
+    }
+
+    function importJSONTrigger() {
+      document.getElementById('jsonFileInput').click();
+    }
+
+    function importJSONFile(e) {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        try {
+          const imported = JSON.parse(ev.target.result);
+          state = { ...structuredClone(defaultState), ...imported };
+          saveState(true);
+          showToast('Respaldo JSON restaurado');
+        } catch (err) {
+          showToast('Archivo JSON inválido');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function resetDemoData() {
+      if (!confirm('¿Restablecer los datos de ejemplo?')) return;
+      state = structuredClone(defaultState);
+      saveState(false);
+      showToast('Datos restablecidos');
+    }
+
+    // RENDERIZADO GENERAL
+    function populatePlanSelects() {
+      const opts = state.plans.map(p => `<option value="${p.id}">${p.name} (${fmtQ(p.price)})</option>`).join('');
+      ['regPlan', 'appPlan', 'memPlan'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = opts;
+      });
+    }
+
+    function populateMemberSelects() {
+      const opts = state.members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+      ['portalMemberSelect', 'progMemberSelect'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          const prev = el.value;
+          el.innerHTML = opts;
+          if (prev && state.members.some(m => m.id === prev)) el.value = prev;
+        }
+      });
+    }
+
+    function renderDashboard() {
+      const activeMembers = state.members.filter(m => m.status === 'Activo');
+      const mrr = activeMembers.reduce((sum, m) => sum + Number(getPlan(m.planId).price || 0), 0);
+      const net = mrr + FIXED_LOCAL_INCOME - FIXED_EXPENSES;
+      const avgFee = activeMembers.length ? (mrr / activeMembers.length) : 550;
+      const breakEven = Math.max(0, Math.ceil((FIXED_EXPENSES - FIXED_LOCAL_INCOME) / Math.max(1, avgFee)));
+
+      document.getElementById('kpiMrr').textContent = fmtQ(mrr);
+      document.getElementById('kpiActiveCount').textContent = `${activeMembers.length} socios activos`;
+      const netEl = document.getElementById('kpiNet');
+      netEl.textContent = fmtQ(net);
+      netEl.className = 'kpi-val ' + (net >= 0 ? 'pos' : 'neg');
+      document.getElementById('kpiBreakEven').textContent = `Punto de equilibrio: ~${breakEven} socios (con locales Q13,000)`;
+
+      const simM = Number(document.getElementById('simMembers').value);
+      const simF = Number(document.getElementById('simFee').value);
+      document.getElementById('simMembersLbl').textContent = simM;
+      document.getElementById('simFeeLbl').textContent = fmtQ(simF);
+      const simIncome = simM * simF + FIXED_LOCAL_INCOME;
+      const simNet = simIncome - FIXED_EXPENSES;
+      document.getElementById('simResult').innerHTML = `Ingreso total proyectado: <strong>${fmtQ(simIncome)}</strong> · Egresos fijos: <strong>${fmtQ(FIXED_EXPENSES)}</strong> · Resultado neto: <strong class="${simNet >= 0 ? 'pos' : 'neg'}">${fmtQ(simNet)}</strong>`;
+
+      document.getElementById('recentInvoicesBody').innerHTML = state.invoices.slice(0, 8).map(i => `
+        <tr>
+          <td>${i.date}</td>
+          <td>${i.memberName}</td>
+          <td>${i.planName}</td>
+          <td><strong>${fmtQ(i.amount)}</strong></td>
+          <td>${i.method}</td>
+          <td><span class="status st-activo">${i.status}</span></td>
+        </tr>`).join('');
+    }
+
+    function renderRegistrations() {
+      const pending = state.registrations.filter(r => r.status === 'Pendiente');
+      document.getElementById('pendingCount').textContent = pending.length;
+      document.getElementById('registrationsBody').innerHTML = state.registrations.length
+        ? state.registrations.map(r => {
+            const p = getPlan(r.planId);
+            return `
+              <tr>
+                <td><img src="${r.photo || DEFAULT_AVATAR}" class="avatar-sm" /> <strong>${r.name}</strong><br><small style="color:var(--muted);">${r.email || r.createdAt}</small></td>
+                <td>${r.phone}</td>
+                <td>${p.name}<br><small style="color:var(--muted);">${fmtQ(p.price)} · ${r.method}</small></td>
+                <td><small>Emergencia: ${r.emergency || '-'}<br>Salud: ${r.health || '-'}</small></td>
+                <td><span class="status ${r.status === 'Pendiente' ? 'st-pendiente' : 'st-activo'}">${r.status}</span></td>
+                <td>
+                  ${r.status === 'Pendiente'
+                    ? `<button class="btn-ok" onclick="openApproveModal('${r.id}')">✅ Aprobar y Cobrar</button>
+                       <button onclick="rejectRegistration('${r.id}')">Archivar</button>`
+                    : `<small style="color:var(--muted);">Procesada</small>`}
+                </td>
+              </tr>`;
+          }).join('')
+        : '<tr><td colspan="6" style="color:var(--muted);">No hay solicitudes de inscripción aún.</td></tr>';
+    }
+
+    function renderMembers() {
+      const q = (document.getElementById('searchMember')?.value || '').toLowerCase();
+      const filtered = state.members.filter(m => m.name.toLowerCase().includes(q) || getPlan(m.planId).name.toLowerCase().includes(q));
+      document.getElementById('membersBody').innerHTML = filtered.map(m => {
+        const p = getPlan(m.planId);
+        const stClass = m.status === 'Activo' ? 'st-activo' : (m.status === 'Pendiente' ? 'st-pendiente' : 'st-vencido');
+        return `
+          <tr>
+            <td><img src="${m.photo || DEFAULT_AVATAR}" class="avatar-sm" /> <strong>${m.name}</strong><br><small style="color:var(--muted);">+502 ${m.phone}</small></td>
+            <td>${p.name}</td>
+            <td><strong>${fmtQ(p.price)}</strong></td>
+            <td>${m.nextBilling}</td>
+            <td><span class="status ${stClass}">${m.status}</span></td>
+            <td style="display:flex; gap:5px; flex-wrap:wrap;">
+              <button class="btn-ok" onclick="renewMember('${m.id}')">↻ Renovar</button>
+              <button onclick="openMemberModal('${m.id}')">Editar</button>
+              <button onclick="deleteMember('${m.id}')">Eliminar</button>
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
+    function renderPlans() {
+      document.getElementById('plansGrid').innerHTML = state.plans.map(p => `
+        <div class="card" style="background:#0d121c; margin:0;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong>${p.name}</strong>
+            <span class="pos" style="font-weight:800;">${fmtQ(p.price)}/mes</span>
+          </div>
+          <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+            <button onclick="copyPaymentLink('${p.id}')">🔗 Copiar Link de Pago</button>
+          </div>
+        </div>`).join('');
+    }
+
+    function renderAll() {
+      populatePlanSelects();
+      populateMemberSelects();
+      renderDashboard();
+      renderRegistrations();
+      renderMembers();
+      renderPlans();
+      renderPortalPreview();
+      renderProgressSection();
+    }
+
+    // INIT
+    document.getElementById('fbApiKey').value = state.firebase?.apiKey || '';
+    document.getElementById('fbDbUrl').value = state.firebase?.dbUrl || '';
+    document.getElementById('fbProjectId').value = state.firebase?.projectId || '';
+    document.getElementById('fbRoom').value = state.firebase?.room || 'knockout_antigua_live';
+    document.getElementById('optCard').checked = !!state.portalOpts.card;
+    document.getElementById('optPlan').checked = !!state.portalOpts.plan;
+    document.getElementById('optPause').checked = !!state.portalOpts.pause;
+    document.getElementById('optCancel').checked = !!state.portalOpts.cancel;
+    document.getElementById('optReceipts').checked = !!state.portalOpts.receipts;
+
+    renderAll();
+    startCloudPolling();
+
+    if (window.location.search.includes('registro=1') || window.location.hash === '#inscripcion') {
+      openStudentPreview();
+    }
+  </script>
+</body>
+</html>
